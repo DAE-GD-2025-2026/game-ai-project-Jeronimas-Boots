@@ -34,7 +34,7 @@ private:
 
 };
 
-class Seek : public ISteeringBehavior1
+class Flee : public ISteeringBehavior1
 {
 public:
 	SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
