@@ -26,3 +26,13 @@ protected:
 };
 
 // Your own SteeringBehaviors should follow here...
+class Seek : public ISteeringBehavior
+{
+public:
+	Seek();
+	~Seek();
+
+	SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
+private:
+
+};
