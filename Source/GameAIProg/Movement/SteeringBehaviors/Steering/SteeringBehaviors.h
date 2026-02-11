@@ -29,10 +29,13 @@ protected:
 class Seek : public ISteeringBehavior
 {
 public:
-	Seek();
-	~Seek();
-
 	SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
 private:
 
+};
+
+class Seek : public ISteeringBehavior1
+{
+public:
+	SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
 };
