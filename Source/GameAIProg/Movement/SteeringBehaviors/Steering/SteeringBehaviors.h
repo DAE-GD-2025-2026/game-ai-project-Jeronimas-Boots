@@ -26,16 +26,34 @@ protected:
 };
 
 // Your own SteeringBehaviors should follow here...
+
+// Seek
 class Seek : public ISteeringBehavior
 {
 public:
 	SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
-private:
-
 };
 
-class Flee : public ISteeringBehavior1
+// Flee
+class Flee : public ISteeringBehavior
 {
 public:
+
 	SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
+};
+
+// Arrive
+class Arrive : public ISteeringBehavior
+{
+public:
+	//arrive behaviour
+	SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
+
+	//arrive functions
+	void SetSlowRadius(float radius) { m_SlowRadius = radius; }
+	void SetTargetRadius(float radius) { m_TargetRadius = radius; }
+
+protected:
+	float m_SlowRadius = 500.f;
+	float m_TargetRadius = 100.f;
 };
