@@ -67,8 +67,10 @@ SteeringOutput Arrive::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 	SteeringOutput Steering{};
 
 	Steering.LinearVelocity = Target.Position - Agent.GetPosition();
-	Steering.LinearVelocity.Normalize();
 	const float distance = Steering.LinearVelocity.Length();
+	Steering.LinearVelocity.Normalize();
+
+	float fullGass = Agent.GetMaxLinearSpeed();
 
 	if (distance < m_TargetRadius)
 	{
@@ -77,13 +79,11 @@ SteeringOutput Arrive::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 	}
 	else if (distance < m_SlowRadius)
 	{
-		// Inside slow radius - gradually slow down
-		Steering.LinearVelocity *= Agent.GetMaxLinearSpeed() * (distance / m_SlowRadius);
+		Agent.SetMaxLinearSpeed(200);
 	}
 	else
 	{
-		// Outside slow radius - full speed
-		Steering.LinearVelocity *= Agent.GetMaxLinearSpeed();
+		Agent.SetMaxLinearSpeed(600);
 	}
 
 	// Debug Rendering
