@@ -138,3 +138,71 @@ SteeringOutput Arrive::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 
 	return Steering;
 }
+
+// PURSUIT
+//********
+SteeringOutput Pursuit::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
+{
+	SteeringOutput Steering{};
+
+	// Calculate distance to target
+	FVector2D ToTarget = Target.Position - Agent.GetPosition();
+	float distance = ToTarget.Length();
+
+	// Calculate time to reach target: t = d/v
+	float speed = Agent.GetLinearVelocity().Length();
+	if (speed <= 0.f)
+		speed = Agent.GetMaxLinearSpeed(); // Use max speed if currently stationary
+
+	float timeToTarget = distance / speed;
+
+	// Predict future position: futurePosition = currentPosition + velocity * time
+	FVector2D PredictedPosition = Target.Position + (Target.LinearVelocity * timeToTarget);
+
+	// Seek to the predicted position
+	Steering.LinearVelocity = PredictedPosition - Agent.GetPosition();
+
+	// Debug Rendering
+	if (Agent.GetDebugRenderingEnabled())
+	{
+		// Draw arrow to predicted position
+		FVector2D Direction = Steering.LinearVelocity;
+		Direction.Normalize();
+
+		DrawDebugDirectionalArrow(
+			Agent.GetWorld(),
+			Agent.GetActorLocation(),
+			Agent.GetActorLocation() + FVector{ Direction * 150.f, 0.f },
+			500.f,
+			FColor::Purple,
+			false,
+			-1.f,
+			0,
+			2.f
+		);
+
+		// Draw predicted target position
+		DrawDebugCircle(
+			Agent.GetWorld(),
+			FVector{ PredictedPosition, 0.f },
+			50.f,
+			12,
+			FColor::Yellow,
+			false,
+			-1.f,
+			0,
+			3.f,
+			FVector(1.f, 0.f, 0.f), // Y-Axis (X direction in world)
+			FVector(0.f, 1.f, 0.f), // Z-Axis (Y direction in world)
+			false);					// Draw axis
+	}
+
+	return Steering;
+}
+
+SteeringOutput Evade::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
+{
+	SteeringOutput Steering = Pursuit::CalculateSteering(DeltaT, Agent);
+	Steering.LinearVelocity = Steering.LinearVelocity * (-1);
+	return Steering;
+}

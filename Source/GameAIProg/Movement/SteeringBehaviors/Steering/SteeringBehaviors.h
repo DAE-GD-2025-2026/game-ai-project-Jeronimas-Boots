@@ -57,3 +57,17 @@ protected:
 	float m_SlowRadius = 500.f;
 	float m_TargetRadius = 100.f;
 };
+
+// Persuit
+class Pursuit : public ISteeringBehavior
+{
+public:
+	virtual SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
+};
+
+// Evade
+class Evade : public Pursuit
+{
+public:
+	SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
+};
