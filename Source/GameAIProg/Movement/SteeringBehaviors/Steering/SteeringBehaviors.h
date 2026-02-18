@@ -31,7 +31,7 @@ protected:
 class Seek : public ISteeringBehavior
 {
 public:
-	SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
+	virtual SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
 };
 
 // Flee
@@ -70,4 +70,24 @@ class Evade : public Pursuit
 {
 public:
 	SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
+};
+
+// Wander
+class Wander : public Seek
+{
+public:
+	Wander() = default;
+	virtual ~Wander() = default;
+
+	SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
+
+	void SetWanderOffset(float offset) { m_OffsetDistance = offset; }
+	void SetWanderRadius(float radius) { m_Radius = radius; }
+	void SetMaxAngleChange(float rad) { m_MaxAngleChange = rad; }
+
+private:
+	float m_OffsetDistance = 6.f;
+	float m_Radius = 50.f;
+	float m_MaxAngleChange = 45 * 3.1415926535f / 180;
+	float m_WanderAngle = 0.f;
 };
