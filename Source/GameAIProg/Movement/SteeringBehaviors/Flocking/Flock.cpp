@@ -16,14 +16,72 @@ Flock::Flock(
 {
 	Agents.SetNum(FlockSize);
 	Neighbors.SetNum(FlockSize);
-	
- // TODO: initialize the flock and the memory pool
-	
+
+	// Initialize steering behaviors
+	pSeparationBehavior = std::make_unique<Separation>(this);
+	pCohesionBehavior = std::make_unique<Cohesion>(this);
+	pVelMatchBehavior = std::make_unique<VelocityMatch>(this);
+
+	pSeekBehavior = std::make_unique<Seek>();
+	pWanderBehavior = std::make_unique<Wander>();
+	pEvadeBehavior = std::make_unique<Evade>();
+
+	// initialize blended steering
+	pBlendedSteering = std::make_unique<BlendedSteering>(
+		std::vector<BlendedSteering::WeightedBehavior>{
+			{pCohesionBehavior.get(), 0.80f},
+			{pSeparationBehavior.get(), 0.15f},
+			{pVelMatchBehavior.get(), 0.25f},
+			{pSeekBehavior.get(), 0.25f},
+			{pWanderBehavior.get(), 0.25f}
+		});
+	pEvadeBehavior->SetRadius(150.f);
+
+	// priority steering
+	pPrioritySteering = std::make_unique<PrioritySteering>(
+		std::vector<ISteeringBehavior*>
+		{
+			pEvadeBehavior.get(), pBlendedSteering.get()
+		});
+
+	// Initialize agents
+	if (pWorld && AgentClass)
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		for (int i = 0; i < FlockSize; ++i)
+		{
+			// Spawn agent at random position within world bounds
+			FVector SpawnLocation(
+				FMath::RandRange(0.f, WorldSize),
+				FMath::RandRange(0.f, WorldSize),
+				0.f // Z-position, adjust if needed
+			);
+
+			Agents[i] = pWorld->SpawnActor<ASteeringAgent>(AgentClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
+
+			if (Agents[i])
+			{
+				Agents[i]->SetSteeringBehavior(pPrioritySteering.get());
+				Agents[i]->SetIsAutoOrienting(true);
+
+#ifdef GAMEAI_USE_SPACE_PARTITIONING
+				// pCellSpace->AddAgent(Agents[i]);
+#endif
+			}
+		}
+	}
 }
 
 Flock::~Flock()
 {
- // TODO: Cleanup any additional data
+	for (ASteeringAgent* pAgent : Agents)
+	{
+		pAgent->Destroy();
+	}
+	Agents.Empty();
+	Neighbors.Empty();
 }
 
 void Flock::Tick(float DeltaTime)

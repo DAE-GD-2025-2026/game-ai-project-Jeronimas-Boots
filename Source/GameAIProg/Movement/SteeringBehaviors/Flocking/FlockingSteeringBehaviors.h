@@ -18,10 +18,10 @@ private:
 
 //SEPARATION - FLOCKING
 //*********************
-class Seperation : public Seek
+class Separation : public Seek
 {
 public:
-	Seperation(Flock* const pFLock) : m_pFlock(pFLock) {};
+	Separation(Flock* const pFLock) : m_pFlock(pFLock) {};
 
 	//Seperation Behvior
 	SteeringOutput CalculateSteering(float deltaT, ASteeringAgent& pAgent) override;

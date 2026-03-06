@@ -15,7 +15,7 @@ SteeringOutput Cohesion::CalculateSteering(float deltaT, ASteeringAgent& pAgent)
 
 //*********************
 //SEPARATION (FLOCKING)
-SteeringOutput Seperation::CalculateSteering(float deltaT, ASteeringAgent& pAgent)
+SteeringOutput Separation::CalculateSteering(float deltaT, ASteeringAgent& pAgent)
 {
 	SteeringOutput steering{};
 	FVector2D seperationForce = FVector2D::ZeroVector;
