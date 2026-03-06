@@ -8,7 +8,9 @@
 //COHESION (FLOCKING)
 SteeringOutput Cohesion::CalculateSteering(float deltaT, ASteeringAgent& pAgent)
 {
-	return SteeringOutput{};
+	SteeringOutput steering{};
+	steering.LinearVelocity = pFlock->GetAverageNeighborPos() - pAgent.GetPosition();
+	return steering;
 }
 
 //*********************
