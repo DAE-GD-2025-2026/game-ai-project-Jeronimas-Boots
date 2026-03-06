@@ -70,6 +70,10 @@ class Evade : public Pursuit
 {
 public:
 	SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
+
+	void SetRadius(float radius) { m_EvadeRadius = radius; }
+private:
+	float m_EvadeRadius = 10.f;
 };
 
 // Wander

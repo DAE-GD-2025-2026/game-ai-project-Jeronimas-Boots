@@ -13,8 +13,32 @@ ALevel_CombinedSteering::ALevel_CombinedSteering()
 // Called when the game starts or when spawned
 void ALevel_CombinedSteering::BeginPlay()
 {
-	Super::BeginPlay();
+	//Super::BeginPlay();
+	//
+	//// Shared
+	//m_pWander = std::make_unique<Wander>();
+	//
+	//// Blended Steering
+	//m_pDrunkSeek = std::make_unique<Seek>();
+	//
+	//m_pBlendedSteering = std::make_unique<BlendedSteering>(
+	//	std::vector<BlendedSteering::WeightedBehavior>{
+	//		{ m_pDrunkSeek.get(), 0.5f},
+	//		{m_pWander.get(), 0.5f}
+	//	});
+	//m_pDrunkAgent = std::make_unique<ASteeringAgent>();
+	//m_pDrunkAgent->SetSteeringBehavior(m_pBlendedSteering.get());
+	////m_pDrunkAgent->SetIsAutoOrienting(true);
 
+	//// Priority
+	//m_pEvade = std::make_unique<Evade>();
+	//m_pEvade->SetRadius(500.f);
+	//m_pPrioritySteering = std::make_unique<PrioritySteering>(
+	//	std::vector<ISteeringBehavior*> { m_pEvade.get(), m_pWander.get() }
+	//);
+	//m_pEvadingAgent = std::make_unique<ASteeringAgent>();
+	//m_pEvadingAgent->SetSteeringBehavior(m_pPrioritySteering.get());
+	//m_pEvadingAgent->SetIsAutoOrienting(true);
 }
 
 void ALevel_CombinedSteering::BeginDestroy()

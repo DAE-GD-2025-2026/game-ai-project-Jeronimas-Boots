@@ -15,8 +15,10 @@ Flock::Flock(
 	, pAgentToEvade{pAgentToEvade}
 {
 	Agents.SetNum(FlockSize);
-
+	Neighbors.SetNum(FlockSize);
+	
  // TODO: initialize the flock and the memory pool
+	
 }
 
 Flock::~Flock()
@@ -98,6 +100,17 @@ void Flock::RenderNeighborhood()
 void Flock::RegisterNeighbors(ASteeringAgent* const pAgent)
 {
  // TODO: Implement
+	NrOfNeighbors = 0;
+	for (auto& agent : Agents)
+	{
+		float distanceSquared = FVector2D::DistSquared(agent->GetPosition(), pAgent->GetPosition());
+		if (distanceSquared < NeighborhoodRadius * NeighborhoodRadius)
+		{
+			Neighbors[NrOfNeighbors] = agent;
+			++NrOfNeighbors;
+		}
+	}
+
 }
 #endif
 

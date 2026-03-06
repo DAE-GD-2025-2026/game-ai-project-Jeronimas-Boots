@@ -52,9 +52,6 @@ void ASteeringAgent::Tick(float DeltaTime)
 				}
 			}
 		}
-		
-
-		// TODO Implement angular velocity handling
 	}
 }
 
