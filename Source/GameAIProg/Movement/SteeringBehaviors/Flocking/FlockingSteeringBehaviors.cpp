@@ -9,7 +9,7 @@
 SteeringOutput Cohesion::CalculateSteering(float deltaT, ASteeringAgent& pAgent)
 {
 	SteeringOutput steering{};
-	steering.LinearVelocity = pFlock->GetAverageNeighborPos() - pAgent.GetPosition();
+	steering.LinearVelocity = m_pFlock->GetAverageNeighborPos() - pAgent.GetPosition();
 	return steering;
 }
 
@@ -20,8 +20,8 @@ SteeringOutput Seperation::CalculateSteering(float deltaT, ASteeringAgent& pAgen
 	SteeringOutput steering{};
 	FVector2D seperationForce = FVector2D::ZeroVector;
 
-	const TArray<ASteeringAgent*>& neighbors = pFlock->GetNeighbors();
-	int nrOfNeighbors = pFlock->GetNrOfNeighbors();
+	const TArray<ASteeringAgent*>& neighbors = m_pFlock->GetNeighbors();
+	int nrOfNeighbors = m_pFlock->GetNrOfNeighbors();
 
 	for (int i = 0; i < nrOfNeighbors; i++)
 	{
@@ -42,4 +42,9 @@ SteeringOutput Seperation::CalculateSteering(float deltaT, ASteeringAgent& pAgen
 
 //*************************
 //VELOCITY MATCH (FLOCKING)
-
+SteeringOutput VelocityMatch::CalculateSteering(float deltaT, ASteeringAgent& pAgent)
+{
+	SteeringOutput steering{};
+	steering.LinearVelocity = m_pFlock->GetAverageNeighborVelocity();
+	return steering;
+}
