@@ -86,11 +86,28 @@ Flock::~Flock()
 
 void Flock::Tick(float DeltaTime)
 {
- // TODO: update the flock
- // TODO: for every agent:
-  // TODO: register the neighbors for this agent (-> fill the memory pool with the neighbors for the currently evaluated agent)
-  // TODO: update the agent (-> the steeringbehaviors use the neighbors in the memory pool)
-  // TODO: trim the agent to the world
+	// Update the agent to evade's data
+	
+	FSteeringParams AgentToEvadeParams;
+	AgentToEvadeParams.Position = pAgentToEvade->GetPosition();
+	AgentToEvadeParams.LinearVelocity = pAgentToEvade->GetLinearVelocity();
+	AgentToEvadeParams.Orientation = pAgentToEvade->GetRotation();
+	AgentToEvadeParams.AngularVelocity = pAgentToEvade->GetAngularVelocity();
+	
+	pEvadeBehavior->SetTarget(AgentToEvadeParams);
+	
+	// Update each agent in the flock
+	for (int i = 0; i < Agents.Num(); ++i)
+	{
+		// Register neighbors for this agent
+		RegisterNeighbors(Agents[i]);
+	
+		// Update the agent (steering behaviors use the neighbors in the memory pool)
+		Agents[i]->Tick(DeltaTime);
+	}
+	
+	// Update the agent to evade
+	pAgentToEvade->Tick(DeltaTime);
 }
 
 void Flock::RenderDebug()
@@ -151,13 +168,34 @@ void Flock::ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize)
 
 void Flock::RenderNeighborhood()
 {
- // TODO: Debugrender the neighbors for the first agent in the flock
+	if (!pWorld || Agents.Num() == 0 || !Agents[0])
+		return;
+
+	// Render the neighborhood of the first agent
+	RegisterNeighbors(Agents[0]);
+
+	// Draw all neighbors as green circles
+	for (int i = 0; i < NrOfNeighbors; ++i)
+	{
+		ASteeringAgent* pNeighbor = Neighbors[i];
+		if (pNeighbor)
+		{
+			FVector Position = FVector(pNeighbor->GetPosition().X, pNeighbor->GetPosition().Y, 0.f);
+			DrawDebugCircle(pWorld, Position, 30, 32, FColor::Green, false, -1.f, 0, 2.f, FVector(0, 1, 0), FVector(1, 0, 0));
+		}
+	}
+
+	// Draw the first agent as a blue circle
+	FVector FirstAgentPos = FVector(Agents[0]->GetPosition().X, Agents[0]->GetPosition().Y, 0.f);
+	DrawDebugCircle(pWorld, FirstAgentPos, 30, 32, FColor::Blue, false, -1.f, 0, 2.f, FVector(0, 1, 0), FVector(1, 0, 0));
+
+	// Draw the neighborhood radius as a blue outline circle
+	DrawDebugCircle(pWorld, FirstAgentPos, NeighborhoodRadius, 64, FColor::Blue, false, -1.f, 0, 1.f, FVector(0, 1, 0), FVector(1, 0, 0));
 }
 
 #ifndef GAMEAI_USE_SPACE_PARTITIONING
 void Flock::RegisterNeighbors(ASteeringAgent* const pAgent)
 {
- // TODO: Implement
 	NrOfNeighbors = 0;
 	for (auto& agent : Agents)
 	{
@@ -204,6 +242,6 @@ FVector2D Flock::GetAverageNeighborVelocity() const
 
 void Flock::SetTarget_Seek(FSteeringParams const& Target)
 {
- // TODO: Implement
+	pSeekBehavior->SetTarget(Target);
 }
 

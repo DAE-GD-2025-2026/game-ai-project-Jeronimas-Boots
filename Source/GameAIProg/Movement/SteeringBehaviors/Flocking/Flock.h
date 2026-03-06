@@ -47,6 +47,7 @@ public:
 private:
 	// For debug rendering purposes
 	UWorld* pWorld{nullptr};
+	bool m_TrimWorld = false;
 	
 	int FlockSize{0};
 	TArray<ASteeringAgent*> Agents{};
