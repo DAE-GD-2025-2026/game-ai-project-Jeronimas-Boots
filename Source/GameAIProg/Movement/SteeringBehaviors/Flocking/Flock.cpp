@@ -118,7 +118,13 @@ FVector2D Flock::GetAverageNeighborPos() const
 {
 	FVector2D avgPosition = FVector2D::ZeroVector;
 
- // TODO: Implement
+	for (int i = 0; i < NrOfNeighbors; i++)
+	{
+		avgPosition += Neighbors[i]->GetPosition();
+	}
+
+	if (NrOfNeighbors > 0)
+		avgPosition /= static_cast<float>(NrOfNeighbors);
 	
 	return avgPosition;
 }
@@ -127,7 +133,13 @@ FVector2D Flock::GetAverageNeighborVelocity() const
 {
 	FVector2D avgVelocity = FVector2D::ZeroVector;
 
- // TODO: Implement
+	for (int i = 0; i < NrOfNeighbors; i++)
+	{
+		avgVelocity += Neighbors[i]->GetLinearVelocity();
+	}
+
+	if (NrOfNeighbors > 0)
+		avgVelocity /= static_cast<float>(NrOfNeighbors);
 
 	return avgVelocity;
 }
