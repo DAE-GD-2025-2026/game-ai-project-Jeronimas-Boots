@@ -26,7 +26,7 @@ void ALevel_Flocking::BeginPlay()
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 		// Place agent roughly in the center of the trimmed world, Z raised so character doesn't intersect ground
-		FVector SpawnLocation(TrimWorld->GetTrimWorldSize() * 0.5f, TrimWorld->GetTrimWorldSize() * 0.5f, 90.f);
+		FVector SpawnLocation(TrimWorld->GetTrimWorldSize() /3.f, TrimWorld->GetTrimWorldSize() / 3.f, 90.f);
 
 		pAgentToEvade = GetWorld()->SpawnActor<ASteeringAgent>(AgentClassToUse, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
 
@@ -40,7 +40,7 @@ void ALevel_Flocking::BeginPlay()
 
 			// If you need to explicitly set position API on your ABaseAgent, use SetActorLocation:
 			pAgentToEvade->SetActorLocation(SpawnLocation);
-			pAgentToEvade->SetDebugRenderingEnabled(true);
+			pAgentToEvade->SetDebugRenderingEnabled(false);
 		}
 	}
 

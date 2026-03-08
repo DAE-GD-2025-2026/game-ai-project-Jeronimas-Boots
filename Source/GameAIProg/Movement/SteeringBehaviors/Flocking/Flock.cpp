@@ -35,7 +35,7 @@ Flock::Flock(
 			{ pSeekBehavior.get(), 0.25f },
 			{ pWanderBehavior.get(), 0.25f }
 	});
-	pEvadeBehavior->SetRadius(20.f);
+	pEvadeBehavior->SetRadius(450.f);
 
 	// priority steering
 	pPrioritySteering = std::make_unique<PrioritySteering>(
@@ -54,9 +54,9 @@ Flock::Flock(
 		{
 			// Spawn agent at random position within world bounds
 			FVector SpawnLocation(
-				FMath::RandRange(0.f, WorldSize),
-				FMath::RandRange(0.f, WorldSize),
-				0.f // Z-position, adjust if needed
+				FMath::RandRange(0.f, WorldSize / 2),
+				FMath::RandRange(0.f, WorldSize / 2),
+				10.f // Z-position raised above ground to prevent agents falling through
 			);
 
 			Agents[i] = pWorld->SpawnActor<ASteeringAgent>(AgentClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
@@ -114,13 +114,8 @@ void Flock::RenderDebug()
 {
 	if (DebugRenderSteering)
 	{
-		for (ASteeringAgent* pAgent : Agents)
-		{
-			if (pAgent)
-			{
-				pAgent->SetDebugRenderingEnabled(true);
-			}
-		}
+		Agents[0]->SetDebugRenderingEnabled(true);
+		pAgentToEvade->SetDebugRenderingEnabled(true);
 	}
 	else
 	{
@@ -136,14 +131,15 @@ void Flock::RenderDebug()
 	if (DebugRenderNeighborhood)
 	{
 		RenderNeighborhood();
-	}
 
 #ifdef GAMEAI_USE_SPACE_PARTITIONING
-	if (DebugRenderPartitions)
-	{
-		// pCellSpace->RenderCells();
-	}
+		if (DebugRenderPartitions)
+		{
+			// pCellSpace->RenderCells();
+			// pCellSpace->RenderNeighborhood(Agents[0]->GetPosition(), NeighborhoodRadius);
+		}
 #endif
+	}
 }
 
 void Flock::ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize)
@@ -219,26 +215,20 @@ void Flock::ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize)
 
 void Flock::RenderNeighborhood()
 {
-	if (!pWorld || Agents.Num() == 0 || !Agents[0])
-		return;
 
 	// Render the neighborhood of the first agent
 	RegisterNeighbors(Agents[0]);
 
-	// Draw all neighbors as green circles
 	for (int i = 0; i < NrOfNeighbors; ++i)
 	{
 		ASteeringAgent* pNeighbor = Neighbors[i];
-		if (pNeighbor)
-		{
-			FVector Position = FVector(pNeighbor->GetPosition().X, pNeighbor->GetPosition().Y, 0.f);
-			DrawDebugCircle(pWorld, Position, 30, 32, FColor::Green, false, -1.f, 0, 2.f, FVector(0, 1, 0), FVector(1, 0, 0));
-		}
+		FVector FirstNeighborPos = FVector(pNeighbor->GetPosition().X, pNeighbor->GetPosition().Y, 0.f);
+		DrawDebugCircle(pWorld, FirstNeighborPos, 30.f, 20, FColor::Green, false, -1.f, 0, 4.f, FVector(0, 1, 0), FVector(1, 0, 0));
 	}
 
 	// Draw the first agent as a blue circle
 	FVector FirstAgentPos = FVector(Agents[0]->GetPosition().X, Agents[0]->GetPosition().Y, 0.f);
-	DrawDebugCircle(pWorld, FirstAgentPos, 30, 32, FColor::Blue, false, -1.f, 0, 2.f, FVector(0, 1, 0), FVector(1, 0, 0));
+	DrawDebugCircle(pWorld, FirstAgentPos, 30, 32, FColor::Blue, false, -1.f, 0, 4.f, FVector(0, 1, 0), FVector(1, 0, 0));
 
 	// Draw the neighborhood radius as a blue outline circle
 	DrawDebugCircle(pWorld, FirstAgentPos, NeighborhoodRadius, 64, FColor::Blue, false, -1.f, 0, 1.f, FVector(0, 1, 0), FVector(1, 0, 0));
