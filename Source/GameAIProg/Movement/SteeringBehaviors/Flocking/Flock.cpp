@@ -222,13 +222,13 @@ void Flock::RenderNeighborhood()
 	for (int i = 0; i < NrOfNeighbors; ++i)
 	{
 		ASteeringAgent* pNeighbor = Neighbors[i];
-		FVector FirstNeighborPos = FVector(pNeighbor->GetPosition().X, pNeighbor->GetPosition().Y, 0.f);
+		FVector FirstNeighborPos = FVector(pNeighbor->GetPosition().X, pNeighbor->GetPosition().Y, 20.f);
 		DrawDebugCircle(pWorld, FirstNeighborPos, 30.f, 20, FColor::Green, false, -1.f, 0, 4.f, FVector(0, 1, 0), FVector(1, 0, 0));
 	}
 
 	// Draw the first agent as a blue circle
-	FVector FirstAgentPos = FVector(Agents[0]->GetPosition().X, Agents[0]->GetPosition().Y, 0.f);
-	DrawDebugCircle(pWorld, FirstAgentPos, 30, 32, FColor::Blue, false, -1.f, 0, 4.f, FVector(0, 1, 0), FVector(1, 0, 0));
+	FVector FirstAgentPos = FVector(Agents[0]->GetPosition().X, Agents[0]->GetPosition().Y, 20.f);
+	DrawDebugCircle(pWorld, FirstAgentPos, 60, 32, FColor::Blue, false, -1.f, 0, 4.f, FVector(0, 1, 0), FVector(1, 0, 0));
 
 	// Draw the neighborhood radius as a blue outline circle
 	DrawDebugCircle(pWorld, FirstAgentPos, NeighborhoodRadius, 64, FColor::Blue, false, -1.f, 0, 1.f, FVector(0, 1, 0), FVector(1, 0, 0));
