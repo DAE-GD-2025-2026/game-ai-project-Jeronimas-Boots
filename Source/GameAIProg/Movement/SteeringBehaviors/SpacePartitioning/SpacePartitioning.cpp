@@ -126,13 +126,41 @@ void CellSpace::EmptyCells()
 
 void CellSpace::RenderCells() const
 {
-	// TODO Render the cells with the number of agents inside of it
+	// Render the cells with the number of agents inside of it
+	for (const Cell& cell : Cells)
+	{
+		// Get the rectangle points of the cell
+		std::vector<FVector2D> rectPoints = cell.GetRectPoints();
+
+		// Draw the cell's bounding box using debug lines
+		for (int i = 0; i < static_cast<int>(rectPoints.size()); ++i)
+		{
+			int nextIndex = (i + 1) % rectPoints.size();
+			FVector Start = FVector(rectPoints[i].X, rectPoints[i].Y, 20.f);
+			FVector End = FVector(rectPoints[nextIndex].X, rectPoints[nextIndex].Y, 20.f);
+
+			DrawDebugLine(pWorld, Start, End, FColor::Red, false, -1.f, 0, 1.f);
+		}
+
+		// Draw the number of agents inside the cell
+		float centerX = (cell.BoundingBox.Min.X + cell.BoundingBox.Max.X) * 0.5f;
+		float centerY = (cell.BoundingBox.Min.Y + cell.BoundingBox.Max.Y) * 0.5f;
+		FVector TextPos = FVector(centerX, centerY, 20.f);
+
+		FString AgentCount = FString::FromInt(cell.Agents.size());
+		DrawDebugString(pWorld, TextPos, AgentCount, nullptr, FColor::White, -1.f, true);
+	}
 }
 
 int CellSpace::PositionToIndex(FVector2D const & Pos) const
 {
 	// TODO Calculate the index of the cell based on the position
-	return 0;
+	int col = static_cast<int>(Pos.X / CellWidth);
+	col = std::clamp(col, 0, NrOfCols - 1);
+
+	int row = static_cast<int>(Pos.Y / CellHeight);
+	row = std::clamp(row, 0, NrOfRows - 1);
+	return row * NrOfCols + col;
 }
 
 bool CellSpace::DoRectsOverlap(FRect const & RectA, FRect const & RectB)
