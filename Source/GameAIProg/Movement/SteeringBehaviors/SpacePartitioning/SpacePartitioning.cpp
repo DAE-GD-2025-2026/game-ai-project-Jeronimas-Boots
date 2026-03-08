@@ -77,8 +77,45 @@ void CellSpace::UpdateAgentCell(ASteeringAgent& Agent, const FVector2D& OldPos)
 
 void CellSpace::RegisterNeighbors(ASteeringAgent& Agent, float QueryRadius)
 {
-	// TODO Register the neighbors for the provided agent
-	// TODO Only check the cells that are within the radius of the neighborhood
+	NrOfNeighbors = 0;
+
+	FVector2D agentPos = Agent.GetPosition();
+
+	// Calculate the neighborhood bounds
+	float left		= agentPos.X - QueryRadius;
+	float right		= agentPos.X + QueryRadius;
+	float bottom	= agentPos.Y - QueryRadius;
+	float top		= agentPos.Y + QueryRadius;
+
+	// Calculate the rang of cells to check
+	int startCol	= std::max(0, static_cast<int>(left / CellWidth));
+	int endCol		= std::min(NrOfCols - 1, static_cast<int>(right / CellWidth));
+	int startRow	= std::max(0, static_cast<int>(bottom / CellHeight));
+	int endRow		= std::min(NrOfRows - 1, static_cast<int>(top / CellHeight));
+
+	// Iterate through the cells within the neighborhood bounds
+	for (int row = startRow; row < endRow; row++)
+	{
+		for (int col = startCol; col < endCol; col++)
+		{
+			int cellIndex = row * NrOfCols + col;
+			Cell& cell = Cells[cellIndex];
+
+			// Check each agent in the cell
+			for (ASteeringAgent* agent : cell.Agents)
+			{
+				if (agent != &Agent)
+				{
+					float distanceSquared = (agent->GetPosition() - agentPos).SquaredLength();
+					if (distanceSquared <= QueryRadius * QueryRadius)
+					{
+						Neighbors[NrOfNeighbors] = agent;
+						++NrOfNeighbors;
+					}
+				}
+			}
+		}
+	}
 }
 
 void CellSpace::EmptyCells()
