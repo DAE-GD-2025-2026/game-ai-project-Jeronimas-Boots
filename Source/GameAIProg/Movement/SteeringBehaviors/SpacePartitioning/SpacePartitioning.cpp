@@ -143,7 +143,7 @@ void CellSpace::RenderCells() const
 			FVector Start = FVector(rectPoints[i].X, rectPoints[i].Y, 30.f);
 			FVector End = FVector(rectPoints[nextIndex].X, rectPoints[nextIndex].Y, 30.f);
 
-			DrawDebugLine(pWorld, Start, End, FColor::Red, false, -1.f, 0, 1.f);
+			DrawDebugLine(pWorld, Start, End, FColor::Red, false, -1.f, 0, 8.f);
 		}
 
 		// Draw the number of agents inside the cell
@@ -169,7 +169,7 @@ void CellSpace::RenderNeighborhood(FVector2D AgentPos, float NeighborhoodRadius)
 	for (int i = 0; i < 4; ++i)
 	{
 		int nextIndex = (i + 1) % 4;
-		DrawDebugLine(pWorld, SquarePoints[i], SquarePoints[nextIndex], FColor(204, 128, 0), false, -1.f, 0, 2.f);
+		DrawDebugLine(pWorld, SquarePoints[i], SquarePoints[nextIndex], FColor(204, 128, 0), false, -1.f, 0, 7.f);
 	}
 
 	// Create the neighborhood bounding box for overlap testing
@@ -188,10 +188,10 @@ void CellSpace::RenderNeighborhood(FVector2D AgentPos, float NeighborhoodRadius)
 			for (int i = 0; i < static_cast<int>(rectPoints.size()); ++i)
 			{
 				int nextIndex = (i + 1) % rectPoints.size();
-				FVector Start = FVector(rectPoints[i].X, rectPoints[i].Y, 30.f);
-				FVector End = FVector(rectPoints[nextIndex].X, rectPoints[nextIndex].Y, 30.f);
+				FVector Start = FVector(rectPoints[i].X, rectPoints[i].Y, 35.f);
+				FVector End = FVector(rectPoints[nextIndex].X, rectPoints[nextIndex].Y, 35.f);
 
-				DrawDebugLine(pWorld, Start, End, FColor::Cyan, false, -1.f, 0, 3.f);
+				DrawDebugLine(pWorld, Start, End, FColor::Cyan, false, -1.f, SDPG_Foreground, 15.f);
 			}
 		}
 	}

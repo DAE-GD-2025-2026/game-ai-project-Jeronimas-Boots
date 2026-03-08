@@ -31,11 +31,11 @@ Flock::Flock(
 	// initialize blended steering
 	pBlendedSteering = std::make_unique<BlendedSteering>(
 		std::vector<BlendedSteering::WeightedBehavior>{
-			{pCohesionBehavior.get(), 0.80f},
-			{ pSeparationBehavior.get(), 0.15f },
-			{ pVelMatchBehavior.get(), 0.25f },
-			{ pSeekBehavior.get(), 0.25f },
-			{ pWanderBehavior.get(), 0.25f }
+			{ pCohesionBehavior.get()	, 0.35f},
+			{ pSeparationBehavior.get()	, 0.50f },
+			{ pVelMatchBehavior.get()	, 1.f },
+			{ pSeekBehavior.get()		, 0.f },
+			{ pWanderBehavior.get()		, 1.0f }
 	});
 	pEvadeBehavior->SetRadius(450.f);
 

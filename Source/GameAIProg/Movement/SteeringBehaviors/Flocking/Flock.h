@@ -53,7 +53,7 @@ private:
 	TArray<ASteeringAgent*> Agents{};
 #ifdef GAMEAI_USE_SPACE_PARTITIONING
 	std::unique_ptr<CellSpace> pPartitionedSpace{};
-	int NrOfCellsX{ 10 };
+	int NrOfCellsX{ 20 };
 	TArray<FVector2D> OldPositions{};
 #else // No space partitioning
 	TArray<ASteeringAgent*> Neighbors{};
