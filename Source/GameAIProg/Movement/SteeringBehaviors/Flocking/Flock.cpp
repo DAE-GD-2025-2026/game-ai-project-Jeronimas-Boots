@@ -10,9 +10,9 @@ Flock::Flock(
 	float WorldSize,
 	ASteeringAgent* const pAgentToEvade,
 	bool bTrimWorld)
-	: pWorld{pWorld}
+	: pWorld{ pWorld }
 	, FlockSize{ FlockSize }
-	, pAgentToEvade{pAgentToEvade}
+	, pAgentToEvade{ pAgentToEvade }
 {
 	Agents.SetNum(FlockSize);
 	Neighbors.SetNum(FlockSize);
@@ -30,19 +30,19 @@ Flock::Flock(
 	pBlendedSteering = std::make_unique<BlendedSteering>(
 		std::vector<BlendedSteering::WeightedBehavior>{
 			{pCohesionBehavior.get(), 0.80f},
-			{pSeparationBehavior.get(), 0.15f},
-			{pVelMatchBehavior.get(), 0.25f},
-			{pSeekBehavior.get(), 0.25f},
-			{pWanderBehavior.get(), 0.25f}
-		});
+			{ pSeparationBehavior.get(), 0.15f },
+			{ pVelMatchBehavior.get(), 0.25f },
+			{ pSeekBehavior.get(), 0.25f },
+			{ pWanderBehavior.get(), 0.25f }
+	});
 	pEvadeBehavior->SetRadius(150.f);
 
 	// priority steering
 	pPrioritySteering = std::make_unique<PrioritySteering>(
 		std::vector<ISteeringBehavior*>
-		{
-			pEvadeBehavior.get(), pBlendedSteering.get()
-		});
+	{
+		pEvadeBehavior.get(), pBlendedSteering.get()
+	});
 
 	// Initialize agents
 	if (pWorld && AgentClass)
@@ -87,32 +87,63 @@ Flock::~Flock()
 void Flock::Tick(float DeltaTime)
 {
 	// Update the agent to evade's data
-	
+
 	FSteeringParams AgentToEvadeParams;
 	AgentToEvadeParams.Position = pAgentToEvade->GetPosition();
 	AgentToEvadeParams.LinearVelocity = pAgentToEvade->GetLinearVelocity();
 	AgentToEvadeParams.Orientation = pAgentToEvade->GetRotation();
 	AgentToEvadeParams.AngularVelocity = pAgentToEvade->GetAngularVelocity();
-	
+
 	pEvadeBehavior->SetTarget(AgentToEvadeParams);
-	
+
 	// Update each agent in the flock
 	for (int i = 0; i < Agents.Num(); ++i)
 	{
 		// Register neighbors for this agent
 		RegisterNeighbors(Agents[i]);
-	
+
 		// Update the agent (steering behaviors use the neighbors in the memory pool)
 		Agents[i]->Tick(DeltaTime);
 	}
-	
+
 	// Update the agent to evade
 	pAgentToEvade->Tick(DeltaTime);
 }
 
 void Flock::RenderDebug()
 {
- // TODO: Render all the agents in the flock
+	if (DebugRenderSteering)
+	{
+		for (ASteeringAgent* pAgent : Agents)
+		{
+			if (pAgent)
+			{
+				pAgent->SetDebugRenderingEnabled(true);
+			}
+		}
+	}
+	else
+	{
+		for (ASteeringAgent* pAgent : Agents)
+		{
+			if (pAgent)
+			{
+				pAgent->SetDebugRenderingEnabled(false);
+			}
+		}
+	}
+
+	if (DebugRenderNeighborhood)
+	{
+		RenderNeighborhood();
+	}
+
+#ifdef GAMEAI_USE_SPACE_PARTITIONING
+	if (DebugRenderPartitions)
+	{
+		// pCellSpace->RenderCells();
+	}
+#endif
 }
 
 void Flock::ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize)
@@ -153,12 +184,32 @@ void Flock::ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize)
 		ImGui::Text("Flocking");
 		ImGui::Spacing();
 
-  // TODO: implement ImGUI checkboxes for debug rendering here
+		ImGui::Checkbox("Debug Steering", &DebugRenderSteering);
+		ImGui::Checkbox("Debug Neighborhood", &DebugRenderNeighborhood);
+#ifdef GAMEAI_USE_SPACE_PARTITIONING
+		ImGui::Checkbox("Debug Partitions", &DebugRenderPartitions);
+#endif
 
 		ImGui::Text("Behavior Weights");
 		ImGui::Spacing();
 
-  // TODO: implement ImGUI sliders for steering behavior weights here
+		auto& weightedBehaviors = pBlendedSteering->GetWeightedBehaviorsRef();
+
+		ImGuiHelpers::ImGuiSliderFloatWithSetter("Cohesion",
+			weightedBehaviors[0].Weight, 0.f, 1.f,
+			[&weightedBehaviors](float InVal) { weightedBehaviors[0].Weight = InVal; }, "%.2f");
+		ImGuiHelpers::ImGuiSliderFloatWithSetter("Separation",
+			weightedBehaviors[1].Weight, 0.f, 1.f,
+			[&weightedBehaviors](float InVal) { weightedBehaviors[1].Weight = InVal; }, "%.2f");
+		ImGuiHelpers::ImGuiSliderFloatWithSetter("VelocityMatch",
+			weightedBehaviors[2].Weight, 0.f, 1.f,
+			[&weightedBehaviors](float InVal) { weightedBehaviors[2].Weight = InVal; }, "%.2f");
+		ImGuiHelpers::ImGuiSliderFloatWithSetter("Seek",
+			weightedBehaviors[3].Weight, 0.f, 1.f,
+			[&weightedBehaviors](float InVal) { weightedBehaviors[3].Weight = InVal; }, "%.2f");
+		ImGuiHelpers::ImGuiSliderFloatWithSetter("Wander",
+			weightedBehaviors[4].Weight, 0.f, 1.f,
+			[&weightedBehaviors](float InVal) { weightedBehaviors[4].Weight = InVal; }, "%.2f");
 		//End
 		ImGui::End();
 	}
@@ -221,7 +272,7 @@ FVector2D Flock::GetAverageNeighborPos() const
 
 	if (NrOfNeighbors > 0)
 		avgPosition /= static_cast<float>(NrOfNeighbors);
-	
+
 	return avgPosition;
 }
 
@@ -244,4 +295,3 @@ void Flock::SetTarget_Seek(FSteeringParams const& Target)
 {
 	pSeekBehavior->SetTarget(Target);
 }
-
