@@ -29,26 +29,30 @@ std::vector<FVector2D> Cell::GetRectPoints() const
 // --- Partitioned Space ---
 // -------------------------
 CellSpace::CellSpace(UWorld* pWorld, float Width, float Height, int Rows, int Cols, int MaxEntities)
-	: pWorld{pWorld}
-	, SpaceWidth{Width}
-	, SpaceHeight{Height}
-	, NrOfRows{Rows}
-	, NrOfCols{Cols}
-	, NrOfNeighbors{0}
+	: pWorld{ pWorld }
+	, SpaceWidth{ Width }
+	, SpaceHeight{ Height }
+	, NrOfRows{ Rows }
+	, NrOfCols{ Cols }
+	, NrOfNeighbors{ 0 }
 {
 	Neighbors.SetNum(MaxEntities);
-	
+
 	//calculate bounds of a cell
 	CellWidth = Width / Cols;
 	CellHeight = Height / Rows;
+
+	// The origin is the bottom-left corner of the space
+	// Since the TrimWorld is centered at (0,0) with half-extents, offset by -Width/2 and -Height/2
+	CellOrigin = FVector2D(-Width / 2.f, -Height / 2.f);
 
 	Cells.reserve(Rows * Cols);
 	for (int row = 0; row < Rows; row++)
 	{
 		for (int col = 0; col < Cols; col++)
 		{
-			float left = col * CellWidth;
-			float bottom = row * CellHeight;
+			float left = CellOrigin.X + col * CellWidth;
+			float bottom = CellOrigin.Y + row * CellHeight;
 			Cells.emplace_back(left, bottom, CellWidth, CellHeight);
 		}
 	}
@@ -82,21 +86,21 @@ void CellSpace::RegisterNeighbors(ASteeringAgent& Agent, float QueryRadius)
 	FVector2D agentPos = Agent.GetPosition();
 
 	// Calculate the neighborhood bounds
-	float left		= agentPos.X - QueryRadius;
-	float right		= agentPos.X + QueryRadius;
-	float bottom	= agentPos.Y - QueryRadius;
-	float top		= agentPos.Y + QueryRadius;
+	float left = agentPos.X - QueryRadius;
+	float right = agentPos.X + QueryRadius;
+	float bottom = agentPos.Y - QueryRadius;
+	float top = agentPos.Y + QueryRadius;
 
-	// Calculate the rang of cells to check
-	int startCol	= std::max(0, static_cast<int>(left / CellWidth));
-	int endCol		= std::min(NrOfCols - 1, static_cast<int>(right / CellWidth));
-	int startRow	= std::max(0, static_cast<int>(bottom / CellHeight));
-	int endRow		= std::min(NrOfRows - 1, static_cast<int>(top / CellHeight));
+	// Calculate the range of cells to check (offset by CellOrigin)
+	int startCol = std::max(0, static_cast<int>((left - CellOrigin.X) / CellWidth));
+	int endCol = std::min(NrOfCols - 1, static_cast<int>((right - CellOrigin.X) / CellWidth));
+	int startRow = std::max(0, static_cast<int>((bottom - CellOrigin.Y) / CellHeight));
+	int endRow = std::min(NrOfRows - 1, static_cast<int>((top - CellOrigin.Y) / CellHeight));
 
 	// Iterate through the cells within the neighborhood bounds
-	for (int row = startRow; row < endRow; row++)
+	for (int row = startRow; row <= endRow; row++)
 	{
-		for (int col = startCol; col < endCol; col++)
+		for (int col = startCol; col <= endCol; col++)
 		{
 			int cellIndex = row * NrOfCols + col;
 			Cell& cell = Cells[cellIndex];
@@ -136,8 +140,8 @@ void CellSpace::RenderCells() const
 		for (int i = 0; i < static_cast<int>(rectPoints.size()); ++i)
 		{
 			int nextIndex = (i + 1) % rectPoints.size();
-			FVector Start = FVector(rectPoints[i].X, rectPoints[i].Y, 20.f);
-			FVector End = FVector(rectPoints[nextIndex].X, rectPoints[nextIndex].Y, 20.f);
+			FVector Start = FVector(rectPoints[i].X, rectPoints[i].Y, 30.f);
+			FVector End = FVector(rectPoints[nextIndex].X, rectPoints[nextIndex].Y, 30.f);
 
 			DrawDebugLine(pWorld, Start, End, FColor::Red, false, -1.f, 0, 1.f);
 		}
@@ -145,30 +149,71 @@ void CellSpace::RenderCells() const
 		// Draw the number of agents inside the cell
 		float centerX = (cell.BoundingBox.Min.X + cell.BoundingBox.Max.X) * 0.5f;
 		float centerY = (cell.BoundingBox.Min.Y + cell.BoundingBox.Max.Y) * 0.5f;
-		FVector TextPos = FVector(centerX, centerY, 20.f);
+		FVector TextPos = FVector(centerX, centerY, 30.f);
 
-		FString AgentCount = FString::FromInt(cell.Agents.size());
-		DrawDebugString(pWorld, TextPos, AgentCount, nullptr, FColor::White, -1.f, true);
+		FString AgentCount = FString::FromInt(static_cast<int>(cell.Agents.size()));
+		DrawDebugString(pWorld, TextPos, AgentCount, nullptr, FColor::White, 0.f, true);
 	}
 }
 
-int CellSpace::PositionToIndex(FVector2D const & Pos) const
+void CellSpace::RenderNeighborhood(FVector2D AgentPos, float NeighborhoodRadius) const
 {
-	// TODO Calculate the index of the cell based on the position
-	int col = static_cast<int>(Pos.X / CellWidth);
+	// Draw the neighborhood square around the agent
+	FVector SquarePoints[4] = {
+		FVector(AgentPos.X - NeighborhoodRadius, AgentPos.Y - NeighborhoodRadius, 30.f),
+		FVector(AgentPos.X + NeighborhoodRadius, AgentPos.Y - NeighborhoodRadius, 30.f),
+		FVector(AgentPos.X + NeighborhoodRadius, AgentPos.Y + NeighborhoodRadius, 30.f),
+		FVector(AgentPos.X - NeighborhoodRadius, AgentPos.Y + NeighborhoodRadius, 30.f)
+	};
+
+	for (int i = 0; i < 4; ++i)
+	{
+		int nextIndex = (i + 1) % 4;
+		DrawDebugLine(pWorld, SquarePoints[i], SquarePoints[nextIndex], FColor(204, 128, 0), false, -1.f, 0, 2.f);
+	}
+
+	// Create the neighborhood bounding box for overlap testing
+	FRect NeighborhoodBox;
+	NeighborhoodBox.Min = { AgentPos.X - NeighborhoodRadius, AgentPos.Y - NeighborhoodRadius };
+	NeighborhoodBox.Max = { AgentPos.X + NeighborhoodRadius, AgentPos.Y + NeighborhoodRadius };
+
+	// Highlight overlapping cells
+	for (const Cell& cell : Cells)
+	{
+		if (DoRectsOverlap(cell.BoundingBox, NeighborhoodBox))
+		{
+			std::vector<FVector2D> rectPoints = cell.GetRectPoints();
+
+			// Draw the overlapping cell with a cyan highlight
+			for (int i = 0; i < static_cast<int>(rectPoints.size()); ++i)
+			{
+				int nextIndex = (i + 1) % rectPoints.size();
+				FVector Start = FVector(rectPoints[i].X, rectPoints[i].Y, 30.f);
+				FVector End = FVector(rectPoints[nextIndex].X, rectPoints[nextIndex].Y, 30.f);
+
+				DrawDebugLine(pWorld, Start, End, FColor::Cyan, false, -1.f, 0, 3.f);
+			}
+		}
+	}
+}
+
+int CellSpace::PositionToIndex(FVector2D const& Pos) const
+{
+	// Offset position by CellOrigin to get relative position within the grid
+	int col = static_cast<int>((Pos.X - CellOrigin.X) / CellWidth);
 	col = std::clamp(col, 0, NrOfCols - 1);
 
-	int row = static_cast<int>(Pos.Y / CellHeight);
+	int row = static_cast<int>((Pos.Y - CellOrigin.Y) / CellHeight);
 	row = std::clamp(row, 0, NrOfRows - 1);
 	return row * NrOfCols + col;
 }
 
-bool CellSpace::DoRectsOverlap(FRect const & RectA, FRect const & RectB)
+bool CellSpace::DoRectsOverlap(FRect const& RectA, FRect const& RectB)
 {
 	// Check if the rectangles are separated on either axis
 	if (RectA.Max.X < RectB.Min.X || RectA.Min.X > RectB.Max.X) return false;
 	if (RectA.Max.Y < RectB.Min.Y || RectA.Min.Y > RectB.Max.Y) return false;
-    
+
 	// If they are not separated, they must overlap
 	return true;
 }
