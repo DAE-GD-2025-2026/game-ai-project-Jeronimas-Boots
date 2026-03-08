@@ -1,3 +1,7 @@
 # Game AI Project
 
-Feel free to edit the readme to your liking
+A collection of AI and simulation projects for games, developed by Jeronimas Boots as part of the Algorithms 2 course from the DAE Howest curriculum.
+
+# Current Projects
+Flocking with Spatial Partitioning
+An implementation of flocking behavior (based on classic boid rules — separation, alignment, and cohesion) optimized using spatial partitioning for improved performance at scale.
