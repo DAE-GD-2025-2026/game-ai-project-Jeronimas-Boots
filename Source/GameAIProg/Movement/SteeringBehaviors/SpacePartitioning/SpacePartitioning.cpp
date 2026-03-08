@@ -42,18 +42,37 @@ CellSpace::CellSpace(UWorld* pWorld, float Width, float Height, int Rows, int Co
 	CellWidth = Width / Cols;
 	CellHeight = Height / Rows;
 
-	// TODO create the cells
+	Cells.reserve(Rows * Cols);
+	for (int row = 0; row < Rows; row++)
+	{
+		for (int col = 0; col < Cols; col++)
+		{
+			float left = col * CellWidth;
+			float bottom = row * CellHeight;
+			Cells.emplace_back(left, bottom, CellWidth, CellHeight);
+		}
+	}
+	Neighbors.SetNum(MaxEntities);
 }
 
 void CellSpace::AddAgent(ASteeringAgent& Agent)
 {
 	// TODO Add the agent to the correct cell
+	int cellIndex = PositionToIndex(Agent.GetPosition());
+
+	Cells[cellIndex].Agents.push_back(&Agent);
 }
 
 void CellSpace::UpdateAgentCell(ASteeringAgent& Agent, const FVector2D& OldPos)
 {
-	//TODO Check if the agent needs to be moved to another cell.
-	//TODO Use the calculated index for oldPos and currentPos for this
+	int oldCellIndex = PositionToIndex(OldPos);
+	int newIndex = PositionToIndex(Agent.GetPosition());
+
+	if (oldCellIndex != newIndex)
+	{
+		Cells[oldCellIndex].Agents.remove(&Agent);
+		Cells[newIndex].Agents.push_back(&Agent);
+	}
 }
 
 void CellSpace::RegisterNeighbors(ASteeringAgent& Agent, float QueryRadius)
