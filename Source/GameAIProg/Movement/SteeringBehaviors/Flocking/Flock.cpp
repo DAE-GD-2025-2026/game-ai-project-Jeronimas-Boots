@@ -35,7 +35,7 @@ Flock::Flock(
 			{ pSeekBehavior.get(), 0.25f },
 			{ pWanderBehavior.get(), 0.25f }
 	});
-	pEvadeBehavior->SetRadius(150.f);
+	pEvadeBehavior->SetRadius(20.f);
 
 	// priority steering
 	pPrioritySteering = std::make_unique<PrioritySteering>(

@@ -202,8 +202,54 @@ SteeringOutput Pursuit::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 
 SteeringOutput Evade::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 {
-	SteeringOutput Steering = Pursuit::CalculateSteering(DeltaT, Agent);
-	Steering.LinearVelocity = Steering.LinearVelocity * (-1);
+	SteeringOutput Steering{};
+	Agent.SetIsAutoOrienting(true);
+
+	// Calculate the distance between the agent and the target
+	FVector2D ToTarget = Target.Position - Agent.GetPosition();
+	float distance = ToTarget.Length();
+
+	if (distance < m_EvadeRadius)
+	{
+		// Estimate time to intercept
+		float speed = Agent.GetMaxLinearSpeed();
+		float predictionTime = (speed > 0.f) ? (distance / speed) : 0.0f;
+
+		// Predict future position of the target
+		FVector2D futurePosition = Target.Position + Target.LinearVelocity * predictionTime;
+
+		// Calculate steering away from predicted position
+		Steering.LinearVelocity = futurePosition - Agent.GetPosition();
+		Steering.LinearVelocity = -Steering.LinearVelocity;
+		Steering.LinearVelocity.Normalize();
+		Steering.LinearVelocity *= speed;
+
+		Steering.IsValid = true;
+	}
+	else
+	{
+		Steering.IsValid = false;
+	}
+
+	// Debug Rendering
+	if (Agent.GetDebugRenderingEnabled())
+	{
+		FVector2D Direction = Steering.LinearVelocity;
+		Direction.Normalize();
+
+		DrawDebugDirectionalArrow(
+			Agent.GetWorld(),
+			Agent.GetActorLocation(),
+			Agent.GetActorLocation() + FVector{ Direction * 150.f, 0.f },
+			500.f,
+			FColor::Green,
+			false,
+			-1.f,
+			0,
+			2.f
+		);
+	}
+
 	return Steering;
 }
 
