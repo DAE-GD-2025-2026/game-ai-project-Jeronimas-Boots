@@ -9,20 +9,22 @@
 #include "Movement/SteeringBehaviors/CombinedSteering/CombinedSteeringBehaviors.h"
 #include <memory>
 #include "imgui.h"
+
+// Include Quadtree header
 #ifdef GAMEAI_USE_SPACE_PARTITIONING
-#include "../SpacePartitioning/SpacePartitioning.h"
+#include "Movement/SteeringBehaviors/Flocking/Quadtree.h"
 #endif
 
 class Flock final
 {
 public:
 	Flock(
-	UWorld* pWorld,
-	TSubclassOf<ASteeringAgent> AgentClass,
-	int FlockSize = 10, 
-	float WorldSize = 100.f, 
-	ASteeringAgent* const pAgentToEvade = nullptr, 
-	bool bTrimWorld = false);
+		UWorld* pWorld,
+		TSubclassOf<ASteeringAgent> AgentClass,
+		int FlockSize = 10,
+		float WorldSize = 100.f,
+		ASteeringAgent* const pAgentToEvade = nullptr,
+		bool bTrimWorld = false);
 
 	~Flock();
 
@@ -31,8 +33,9 @@ public:
 	void ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize);
 
 #ifdef GAMEAI_USE_SPACE_PARTITIONING
-	const TArray<ASteeringAgent*>& GetNeighbors() const { return pPartitionedSpace->GetNeighbors(); }
-	int GetNrOfNeighbors() const { return pPartitionedSpace->GetNrOfNeighbors(); }
+	const TArray<ASteeringAgent*>& GetNeighbors() const { return QuadtreeNeighbors; }
+	int GetNrOfNeighbors() const { return QuadtreeNeighbors.Num(); }
+	void RegisterNeighbors(ASteeringAgent* const Agent);
 #else // No space partitioning
 	void RegisterNeighbors(ASteeringAgent* const Agent);
 	int GetNrOfNeighbors() const { return NrOfNeighbors; }
@@ -42,28 +45,28 @@ public:
 	FVector2D GetAverageNeighborPos() const;
 	FVector2D GetAverageNeighborVelocity() const;
 
-	void SetTarget_Seek(FSteeringParams const & Target);
+	void SetTarget_Seek(FSteeringParams const& Target);
 
 private:
 	// For debug rendering purposes
-	UWorld* pWorld{nullptr};
+	UWorld* pWorld{ nullptr };
 	bool m_TrimWorld = false;
-	
-	int FlockSize{0};
+
+	int FlockSize{ 0 };
 	TArray<ASteeringAgent*> Agents{};
+
 #ifdef GAMEAI_USE_SPACE_PARTITIONING
-	std::unique_ptr<CellSpace> pPartitionedSpace{};
-	int NrOfCellsX{ 20 };
-	TArray<FVector2D> OldPositions{};
+	std::unique_ptr<Quadtree> pTree;
+	TArray<ASteeringAgent*> QuadtreeNeighbors{};
 #else // No space partitioning
 	TArray<ASteeringAgent*> Neighbors{};
 #endif // USE_SPACE_PARTITIONING
-	
-	float NeighborhoodRadius{200.f};
-	int NrOfNeighbors{0};
 
-	ASteeringAgent* pAgentToEvade{nullptr};
-	
+	float NeighborhoodRadius{ 200.f };
+	int NrOfNeighbors{ 0 };
+
+	ASteeringAgent* pAgentToEvade{ nullptr };
+
 	//Steering Behaviors
 	std::unique_ptr<Separation> pSeparationBehavior{};
 	std::unique_ptr<Cohesion> pCohesionBehavior{};
@@ -71,14 +74,14 @@ private:
 	std::unique_ptr<Seek> pSeekBehavior{};
 	std::unique_ptr<Wander> pWanderBehavior{};
 	std::unique_ptr<Evade> pEvadeBehavior{};
-	
+
 	std::unique_ptr<BlendedSteering> pBlendedSteering{};
 	std::unique_ptr<PrioritySteering> pPrioritySteering{};
 
 	// UI and rendering
-	bool DebugRenderSteering{false};
-	bool DebugRenderNeighborhood{true};
-	bool DebugRenderPartitions{true};
+	bool DebugRenderSteering{ false };
+	bool DebugRenderNeighborhood{ true };
+	bool DebugRenderPartitions{ true };
 
 	void RenderNeighborhood();
 };

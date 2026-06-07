@@ -15,6 +15,7 @@ Flock::Flock(
 	, pAgentToEvade{ pAgentToEvade }
 {
 	Agents.SetNum(FlockSize);
+
 #ifndef GAMEAI_USE_SPACE_PARTITIONING
 	Neighbors.SetNum(FlockSize);
 #endif
@@ -31,7 +32,7 @@ Flock::Flock(
 	// initialize blended steering
 	pBlendedSteering = std::make_unique<BlendedSteering>(
 		std::vector<BlendedSteering::WeightedBehavior>{
-			{ pCohesionBehavior.get()	, 0.35f},
+			{ pCohesionBehavior.get(), 0.35f},
 			{ pSeparationBehavior.get()	, 0.50f },
 			{ pVelMatchBehavior.get()	, 1.f },
 			{ pSeekBehavior.get()		, 0.f },
@@ -47,10 +48,12 @@ Flock::Flock(
 	});
 
 #ifdef GAMEAI_USE_SPACE_PARTITIONING
-	// Create the partitioned space (using NrOfCellsX for both rows and cols)
 	float FullSize = WorldSize * 2.f;
-	pPartitionedSpace = std::make_unique<CellSpace>(pWorld, FullSize, FullSize, NrOfCellsX, NrOfCellsX, FlockSize);
-	OldPositions.SetNum(FlockSize);
+	FVector2D CenterArea(FullSize / 2.0f, FullSize / 2.0f);
+	FVector2D Extents(FullSize, FullSize); // Safe margins padding
+
+	FQuadtreeAABB WorldAABB = { CenterArea, Extents };
+	pTree = std::make_unique<Quadtree>(WorldAABB, 4); // Max 4 agents per node
 #endif
 
 	// Initialize agents
@@ -74,11 +77,6 @@ Flock::Flock(
 			{
 				Agents[i]->SetSteeringBehavior(pPrioritySteering.get());
 				Agents[i]->SetIsAutoOrienting(true);
-
-#ifdef GAMEAI_USE_SPACE_PARTITIONING
-				pPartitionedSpace->AddAgent(*Agents[i]);
-				OldPositions[i] = Agents[i]->GetPosition();
-#endif
 			}
 		}
 	}
@@ -99,7 +97,6 @@ Flock::~Flock()
 void Flock::Tick(float DeltaTime)
 {
 	// Update the agent to evade's data
-
 	FSteeringParams AgentToEvadeParams;
 	AgentToEvadeParams.Position = pAgentToEvade->GetPosition();
 	AgentToEvadeParams.LinearVelocity = pAgentToEvade->GetLinearVelocity();
@@ -108,25 +105,20 @@ void Flock::Tick(float DeltaTime)
 
 	pEvadeBehavior->SetTarget(AgentToEvadeParams);
 
+#ifdef GAMEAI_USE_SPACE_PARTITIONING
+	// Hierarchical trees are typically rebuilt/cleared each frame since objects move independently
+	pTree->Clear();
+	for (ASteeringAgent* Agent : Agents)
+	{
+		pTree->Insert(Agent);
+	}
+#endif
+
 	// Update each agent in the flock
 	for (int i = 0; i < Agents.Num(); ++i)
 	{
-#ifdef GAMEAI_USE_SPACE_PARTITIONING
-		// Register neighbors via the cell space
-		pPartitionedSpace->RegisterNeighbors(*Agents[i], NeighborhoodRadius);
-#else
-		// Register neighbors via brute-force
 		RegisterNeighbors(Agents[i]);
-#endif
-
-		// Update the agent (steering behaviors use the neighbors in the memory pool)
 		Agents[i]->Tick(DeltaTime);
-
-#ifdef GAMEAI_USE_SPACE_PARTITIONING
-		// Update the agent's cell after it has moved
-		pPartitionedSpace->UpdateAgentCell(*Agents[i], OldPositions[i]);
-		OldPositions[i] = Agents[i]->GetPosition();
-#endif
 	}
 
 	// Update the agent to evade
@@ -158,7 +150,7 @@ void Flock::RenderDebug()
 #ifdef GAMEAI_USE_SPACE_PARTITIONING
 		if (DebugRenderPartitions)
 		{
-			pPartitionedSpace->RenderCells();
+			pTree->RenderDebug(pWorld);
 		}
 #endif
 	}
@@ -237,14 +229,12 @@ void Flock::ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize)
 
 void Flock::RenderNeighborhood()
 {
-#ifdef GAMEAI_USE_SPACE_PARTITIONING
-	// Register neighbors for the first agent via cell space
-	pPartitionedSpace->RegisterNeighbors(*Agents[0], NeighborhoodRadius);
-	const TArray<ASteeringAgent*>& neighbors = pPartitionedSpace->GetNeighbors();
-	int nrOfNeighbors = pPartitionedSpace->GetNrOfNeighbors();
-#else
-	// Register neighbors for the first agent via brute-force
 	RegisterNeighbors(Agents[0]);
+
+#ifdef GAMEAI_USE_SPACE_PARTITIONING
+	const TArray<ASteeringAgent*>& neighbors = QuadtreeNeighbors;
+	int nrOfNeighbors = QuadtreeNeighbors.Num();
+#else
 	const TArray<ASteeringAgent*>& neighbors = Neighbors;
 	int nrOfNeighbors = NrOfNeighbors;
 #endif
@@ -262,19 +252,44 @@ void Flock::RenderNeighborhood()
 
 	// Draw the neighborhood radius as a blue outline circle
 	DrawDebugCircle(pWorld, FirstAgentPos, NeighborhoodRadius, 64, FColor::Blue, false, -1.f, 0, 1.f, FVector(0, 1, 0), FVector(1, 0, 0));
-
-#ifdef GAMEAI_USE_SPACE_PARTITIONING
-	// Draw the neighborhood square and highlight overlapping cells
-	pPartitionedSpace->RenderNeighborhood(Agents[0]->GetPosition(), NeighborhoodRadius);
-#endif
 }
 
-#ifndef GAMEAI_USE_SPACE_PARTITIONING
+#ifdef GAMEAI_USE_SPACE_PARTITIONING
+void Flock::RegisterNeighbors(ASteeringAgent* const pAgent)
+{
+	QuadtreeNeighbors.Empty();
+
+	FQuadtreeAABB QueryRange = {
+		pAgent->GetPosition(),
+		FVector2D(NeighborhoodRadius, NeighborhoodRadius)
+	};
+
+	pTree->Query(QueryRange, QuadtreeNeighbors);
+
+	// Remove self from neighbors, refine distance with real circle bounds instead of square AABB
+	for (int i = QuadtreeNeighbors.Num() - 1; i >= 0; --i)
+	{
+		if (QuadtreeNeighbors[i] == pAgent)
+		{
+			QuadtreeNeighbors.RemoveAtSwap(i);
+			continue;
+		}
+
+		float distanceSquared = FVector2D::DistSquared(QuadtreeNeighbors[i]->GetPosition(), pAgent->GetPosition());
+		if (distanceSquared > NeighborhoodRadius * NeighborhoodRadius)
+		{
+			QuadtreeNeighbors.RemoveAtSwap(i);
+		}
+	}
+}
+#else
 void Flock::RegisterNeighbors(ASteeringAgent* const pAgent)
 {
 	NrOfNeighbors = 0;
 	for (auto& agent : Agents)
 	{
+		if (agent == pAgent) continue;
+
 		float distanceSquared = FVector2D::DistSquared(agent->GetPosition(), pAgent->GetPosition());
 		if (distanceSquared < NeighborhoodRadius * NeighborhoodRadius)
 		{
@@ -291,8 +306,8 @@ FVector2D Flock::GetAverageNeighborPos() const
 	FVector2D avgPosition = FVector2D::ZeroVector;
 
 #ifdef GAMEAI_USE_SPACE_PARTITIONING
-	const TArray<ASteeringAgent*>& neighbors = pPartitionedSpace->GetNeighbors();
-	int nrOfNeighbors = pPartitionedSpace->GetNrOfNeighbors();
+	const TArray<ASteeringAgent*>& neighbors = QuadtreeNeighbors;
+	int nrOfNeighbors = QuadtreeNeighbors.Num();
 #else
 	const TArray<ASteeringAgent*>& neighbors = Neighbors;
 	int nrOfNeighbors = NrOfNeighbors;
@@ -314,8 +329,8 @@ FVector2D Flock::GetAverageNeighborVelocity() const
 	FVector2D avgVelocity = FVector2D::ZeroVector;
 
 #ifdef GAMEAI_USE_SPACE_PARTITIONING
-	const TArray<ASteeringAgent*>& neighbors = pPartitionedSpace->GetNeighbors();
-	int nrOfNeighbors = pPartitionedSpace->GetNrOfNeighbors();
+	const TArray<ASteeringAgent*>& neighbors = QuadtreeNeighbors;
+	int nrOfNeighbors = QuadtreeNeighbors.Num();
 #else
 	const TArray<ASteeringAgent*>& neighbors = Neighbors;
 	int nrOfNeighbors = NrOfNeighbors;
